@@ -17,12 +17,6 @@ python run.py
 
 Then open http://127.0.0.1:5000
 
-## Default admin
-
-- **Username:** admin
-- **Password:** admin
-
-(Change in production!)
 
 ## Usage
 
