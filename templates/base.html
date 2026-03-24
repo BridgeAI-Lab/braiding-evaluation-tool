@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Braiding Annotation{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'DM Sans', system-ui, sans-serif; margin: 0; padding: 1rem; background: #f0f4f8; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        nav { background: #2d3748; color: white; padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        nav a { color: rgba(255,255,255,0.9); text-decoration: none; margin-right: 1.25rem; font-weight: 500; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; pointer-events: none; }
+        .flash { padding: 0.6rem 1.25rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 320px; pointer-events: auto; animation: slideIn 0.3s ease; }
+        .flash.success { background: #d4edda; color: #155724; }
+        .flash.error { background: #f8d7da; color: #721c24; }
+        .flash.info { background: #d1ecf1; color: #0c5460; }
+        .flash.message { background: #e2e3e5; color: #383d41; }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+        h1 { margin-top: 0; }
+        .btn-primary { background: #4a90d9; border-color: #4a90d9; }
+        .btn-primary:hover { background: #3b7bc7; border-color: #3b7bc7; }
+        .btn:not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-outline-secondary) { background-color: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .btn:not(.btn-primary):not(.btn-secondary):not(.btn-success):not(.btn-outline-secondary):hover { background-color: #3b7bc7; color: #fff; border-color: #3b7bc7; }
+        .form-control:focus, .form-select:focus { border-color: #4a90d9; box-shadow: 0 0 0 0.2rem rgba(74, 144, 217, 0.2); }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-radius: 6px; overflow: hidden; }
+        th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; font-weight: 600; }
+        tr:hover { background: #f8f9fa; }
+        input[type="text"], input[type="number"], input[type="password"] { padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; }
+        label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+        .form-group { margin-bottom: 1rem; }
+        .card { background: white; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); margin-bottom: 1rem; border: none; transition: box-shadow 0.2s, transform 0.2s; }
+        .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .card-header { border-radius: 10px 10px 0 0 !important; font-weight: 600; }
+        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #38b2ac; }
+        .progress .progress-bar.bg-success { background: #38b2ac !important; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <nav>
+            {% if current_user.is_authenticated %}
+                {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin_dashboard') }}">Admin</a>
+                    <a href="{{ url_for('admin_upload') }}">Upload</a>
+                    <a href="{{ url_for('admin_guidelines') }}">Edit Guidelines</a>
+                    <a href="{{ url_for('admin_activity') }}">Activity</a>
+                {% else %}
+                    <a href="{{ url_for('index') }}">Home</a>
+                    <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#guidelinesModal">Read Guidelines</a>
+                {% endif %}
+                <span style="float: right;"><a href="{{ url_for('logout') }}">Logout</a></span>
+            {% else %}
+                <a href="{{ url_for('login') }}">Login</a>
+                <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </nav>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="toast-container">
+                    {% for category, msg in messages %}
+                    <div class="flash {{ category }}" data-auto-dismiss>{{ msg }}</div>
+                    {% endfor %}
+                </div>
+                <script>
+                document.querySelectorAll('[data-auto-dismiss]').forEach(function(el) {
+                    setTimeout(function() { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = '0.3s ease'; setTimeout(function() { el.remove(); }, 300); }, 2500);
+                });
+                </script>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+
+    {% if current_user.is_authenticated and not current_user.is_admin %}
+    <div class="modal fade" id="guidelinesModal" tabindex="-1" aria-labelledby="guidelinesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="guidelinesModalLabel">Annotation Guidelines</h5>
+                    <button type="button" class="border-0 bg-transparent p-0 ms-2 opacity-75" style="cursor:pointer;line-height:1;" onclick="copyGuidelinesToClipboard(this)" title="Copy to clipboard" aria-label="Copy guidelines">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="guidelinesModalBody" style="max-height: 70vh; overflow-y: auto;">
+                    {{ guidelines_html|safe }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    function copyGuidelinesToClipboard(btn) {
+        var el = document.getElementById('guidelinesModalBody');
+        var text = el ? el.innerText : '';
+        navigator.clipboard.writeText(text).then(function() {
+            var orig = btn.innerHTML;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            btn.title = 'Copied!';
+            setTimeout(function() { btn.innerHTML = orig; btn.title = 'Copy to clipboard'; }, 1500);
+        });
+    }
+    </script>
+</body>
+</html>

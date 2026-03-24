@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Edit Guidelines{% endblock %}
+{% block head %}
+<style>
+    .guidelines-editor { font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; min-height: 400px; }
+    .guidelines-preview { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; background: #f8fafc; max-height: 400px; overflow-y: auto; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="h4 mb-4" style="color: #2d3748;">Edit Annotation Guidelines</h1>
+<p class="text-muted mb-3">These guidelines are shown to annotators when they click "Read Guidelines". Use HTML for formatting (e.g. <code>&lt;h6&gt;</code>, <code>&lt;p&gt;</code>, <code>&lt;ul&gt;</code>, <code>&lt;li&gt;</code>, <code>&lt;strong&gt;</code>).</p>
+
+<form method="post">
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Guidelines content (HTML)</label>
+        <textarea name="guidelines" class="form-control guidelines-editor" rows="20">{{ guidelines }}</textarea>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" class="btn btn-primary">Save Guidelines</button>
+        <button type="submit" name="restore_default" value="1" class="btn btn-outline-warning" onclick="return confirm('Restore default guidelines? Your edits will be lost.');">Restore Default</button>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+</form>
+
+<div class="mt-4">
+    <h6 class="fw-semibold mb-2">Preview</h6>
+    <div class="guidelines-preview">
+        {{ guidelines|safe }}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Annotator Activity{% endblock %}
+{% block head %}
+<style>
+    .activity-card { border-left: 4px solid #2d3748; }
+    .activity-card .table thead th { background: #edf2f7 !important; color: #2d3748; font-weight: 600; }
+    .status-icon { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .status-active { color: #22c55e; }
+    .status-inactive { color: #94a3b8; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="h4 mb-4" style="color: #2d3748;">Annotator Activity</h1>
+<p class="text-muted mb-4">Track when annotators last logged in and were active. "Active" = activity in the last 15 minutes.</p>
+
+<div class="card activity-card">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Annotator</th>
+                    <th>Status</th>
+                    <th>Last login</th>
+                    <th>Last seen</th>
+                    <th>Total annotations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activity_data %}
+                <tr>
+                    <td><strong>{{ a.user.username|capitalize }}</strong></td>
+                    <td>
+                        {% if a.is_active %}
+                        <span class="status-icon status-active" title="Active"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg></span>
+                        {% else %}
+                        <span class="status-icon status-inactive" title="Inactive"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></span>
+                        {% endif %}
+                    </td>
+                    <td title="{{ a.user.last_login_at.strftime('%Y-%m-%d %H:%M:%S UTC') if a.user.last_login_at else '' }}">{{ a.last_login }}</td>
+                    <td title="{{ a.user.last_activity_at.strftime('%Y-%m-%d %H:%M:%S UTC') if a.user.last_activity_at else '' }}">{{ a.last_activity }}</td>
+                    <td>{{ a.total_annotations }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if not activity_data %}
+<p class="text-muted mt-3">No annotators registered yet.</p>
+{% endif %}
+{% endblock %}

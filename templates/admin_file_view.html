@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}{{ file.filename|display_name|upper }}{% endblock %}
+{% block head %}
+<style>
+    .admin-view-card .table thead th { background: #edf2f7 !important; color: #2d3748; font-weight: 600; }
+    .admin-view-card .table td { vertical-align: middle; }
+    .admin-view-card .table tbody tr:hover { background: #f7fafc; }
+    .admin-view-card .metric-cell { font-size: 0.75rem; padding: 0.35rem 0.5rem; }
+    .admin-view-card .ann-cell { min-width: 95px; font-size: 0.75rem; padding: 0.35rem 0.5rem; }
+    .admin-view-card .ann-text { font-size: 0.75rem; color: #2d3748; white-space: nowrap; line-height: 1.2; }
+    .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border-radius: 3px; text-decoration: none; transition: opacity 0.2s; }
+    .icon-btn:hover { opacity: 0.8; }
+    .icon-btn-edit { color: #4a90d9; }
+    .icon-btn-add { color: #38b2ac; }
+    .icon-btn-flag { color: #a0aec0; border: none; background: none; cursor: pointer; padding: 0; }
+    .icon-btn-flagged { color: #e53e3e; border: none; background: none; cursor: pointer; padding: 0; }
+    .corr-card { border-left: 4px solid #4a90d9; }
+    .corr-card .table thead th { background: #edf2f7 !important; color: #2d3748; font-weight: 600; }
+    .corr-val { font-family: monospace; font-weight: 500; }
+    .corr-val.positive { color: #0d9488; }
+    .corr-val.negative { color: #e53e3e; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <h1 class="h4 mb-0" style="color: #2d3748;">{{ file|display_name|upper }}</h1>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('admin_assign', file_id=file.id) }}" class="btn btn-primary btn-sm">Assign annotators</a>
+        <a href="{{ url_for('admin_download', file_id=file.id) }}" class="btn btn-outline-secondary btn-sm">Download Excel</a>
+        <a href="{{ url_for('admin_dashboard') if not file.archived else url_for('admin_archived') }}" class="btn btn-outline-secondary btn-sm">← Back</a>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="fileViewTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="samples-tab" data-bs-toggle="tab" data-bs-target="#samples-pane" type="button" role="tab">Samples</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="correlation-tab" data-bs-toggle="tab" data-bs-target="#correlation-pane" type="button" role="tab">Correlation</button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="agreement-tab" data-bs-toggle="tab" data-bs-target="#agreement-pane" type="button" role="tab">Annotator Agreement</button>
+    </li>
+</ul>
+
+<div class="tab-content" id="fileViewTabContent">
+<div class="tab-pane fade show active" id="samples-pane" role="tabpanel">
+<div class="card admin-view-card" style="border-left: 4px solid #2d3748;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-3">narrative_number</th>
+                        <th class="metric-cell">gt_trust</th>
+                        <th class="metric-cell">gpt_trust</th>
+                        {% for u in annotators %}
+                        <th class="ann-cell">{{ u.username|capitalize }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in samples %}
+                    <tr>
+                        <td class="ps-3 fw-medium">{{ s.narrative_number }}</td>
+                        <td class="metric-cell"><code>{{ s.gt_trust }}</code></td>
+                        <td class="metric-cell"><code class="ann-text">{{ s|format_gpt }}</code></td>
+                        {% for u in annotators %}
+                        <td class="ann-cell">
+                            {% set key = (s.narrative_number|int, u.id) %}
+                            {% set ann_data = anns_by_sample.get(key) %}
+                            {% if ann_data %}
+                                <code class="ann-text d-block mb-0" title="Annotation">{{ ann_data.formatted or '—' }}</code>
+                                <a href="{{ url_for('admin_edit_annotation_page', file_id=file.id, user_id=u.id, narrative_number=s.narrative_number) }}" class="icon-btn icon-btn-edit ms-1" title="Edit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                </a>
+                                <form method="post" action="/admin/file/{{ file.id }}/flag?page={{ page }}" class="d-inline">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <input type="hidden" name="narrative_number" value="{{ s.narrative_number|int }}">
+                                    <button type="submit" class="icon-btn ms-1 {{ 'icon-btn-flagged' if ann_data.flagged else 'icon-btn-flag' }}" title="{{ 'Flagged for revision (click to unflag)' if ann_data.flagged else 'Flag for revision' }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="{{ 'currentColor' if ann_data.flagged else 'none' }}" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                                <a href="{{ url_for('admin_edit_annotation_page', file_id=file.id, user_id=u.id, narrative_number=s.narrative_number) }}" class="icon-btn icon-btn-add ms-1" title="Add">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                </a>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="d-flex align-items-center gap-2 mt-3">
+    <span class="text-muted small">Page {{ page }} of {{ total_pages }} ({{ total }} samples)</span>
+    {% if page > 1 %}
+    <a href="{{ url_for('admin_file_view', file_id=file.id, page=page-1) }}" class="btn btn-outline-secondary btn-sm">← Previous</a>
+    {% endif %}
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin_file_view', file_id=file.id, page=page+1) }}" class="btn btn-primary btn-sm">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+</div>
+
+<div class="tab-pane fade" id="correlation-pane" role="tabpanel">
+    <form method="get" action="{{ url_for('admin_file_view', file_id=file.id) }}" class="mb-3">
+        <input type="hidden" name="page" value="{{ page }}">
+        <label class="form-label me-2">Correlation method:</label>
+        <select name="method" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+            <option value="spearman" {% if correlation_method == 'spearman' %}selected{% endif %}>Spearman</option>
+            <option value="kendall" {% if correlation_method == 'kendall' %}selected{% endif %}>Kendall τ</option>
+            <option value="pearson" {% if correlation_method == 'pearson' %}selected{% endif %}>Pearson</option>
+        </select>
+    </form>
+    {% if correlation_results %}
+    <div class="card corr-card">
+        <div class="card-body">
+            <h6 class="card-title mb-3">{{ correlation_method|capitalize }} correlation: GPT vs annotators</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Annotator</th>
+                            <th>N annotated</th>
+                            <th>Trust A (r / p)</th>
+                            <th>Trust B (r / p)</th>
+                            <th>Fluency (r / p)</th>
+                            <th>Coherency (r / p)</th>
+                            <th>Hallucination (r / p)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in correlation_results %}
+                        <tr>
+                            <td><strong>{{ r.username|capitalize }}</strong></td>
+                            <td>{{ r.n_annotated }}</td>
+                            <td>{% if r.trust_a[0] is not none %}<span class="corr-val {% if r.trust_a[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.trust_a[0]) }}</span> / {{ "%.3f"|format(r.trust_a[1]) }}{% else %}—{% endif %}</td>
+                            <td>{% if r.trust_b[0] is not none %}<span class="corr-val {% if r.trust_b[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.trust_b[0]) }}</span> / {{ "%.3f"|format(r.trust_b[1]) }}{% else %}—{% endif %}</td>
+                            <td>{% if r.fluency[0] is not none %}<span class="corr-val {% if r.fluency[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.fluency[0]) }}</span> / {{ "%.3f"|format(r.fluency[1]) }}{% else %}—{% endif %}</td>
+                            <td>{% if r.coherency[0] is not none %}<span class="corr-val {% if r.coherency[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.coherency[0]) }}</span> / {{ "%.3f"|format(r.coherency[1]) }}{% else %}—{% endif %}</td>
+                            <td>{% if r.hallucination[0] is not none %}<span class="corr-val {% if r.hallucination[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.hallucination[0]) }}</span> / {{ "%.3f"|format(r.hallucination[1]) }}{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="small text-muted mt-2 mb-0">r = correlation coefficient, p = p-value.</p>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-muted">No annotations yet. Annotators need to complete samples first.</p>
+    {% endif %}
+</div>
+
+<div class="tab-pane fade" id="agreement-pane" role="tabpanel">
+    {% if agreement_results %}
+    <div class="card corr-card">
+        <div class="card-body">
+            <h6 class="card-title mb-3">Inter-annotator agreement</h6>
+            <p class="small text-muted mb-3">% agreement = exact matches; MAE = mean absolute error (Trust only, 0–100 scale); κ/α for ordinal.</p>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Dimension</th>
+                            <th>% Agreement</th>
+                            <th>MAE</th>
+                            <th>Cohen's κ</th>
+                            <th>Fleiss' κ</th>
+                            <th>Krippendorff's α</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dim, vals in agreement_results.items() %}
+                        <tr>
+                            <td><strong>{{ dim }}</strong></td>
+                            <td>{% if vals.percent_agreement is not none %}<span class="corr-val">{{ "%.1f"|format(vals.percent_agreement) }}%</span>{% else %}—{% endif %}</td>
+                            <td>{% if vals.mae is not none %}<span class="corr-val">{{ "%.2f"|format(vals.mae) }}</span>{% else %}—{% endif %}</td>
+                            <td>{% if vals.cohen is not none %}<span class="corr-val">{{ "%.3f"|format(vals.cohen) }}</span>{% else %}—{% endif %}</td>
+                            <td>{% if vals.fleiss is not none %}<span class="corr-val">{{ "%.3f"|format(vals.fleiss) }}</span>{% else %}—{% endif %}</td>
+                            <td>{% if vals.krippendorff is not none %}<span class="corr-val">{{ "%.3f"|format(vals.krippendorff) }}</span>{% else %}—{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="small text-muted mt-2 mb-0">MAE = avg pairwise |difference| per sample (Trust only; lower = better). % agreement = exact match. κ/α &gt; 0.6 = substantial, 0.4–0.6 = moderate, 0.2–0.4 = fair, &lt; 0.2 = slight.</p>
+        </div>
+    </div>
+    {% elif annotators|length < 2 %}
+    <p class="text-muted">Need at least 2 annotators to compute agreement.</p>
+    {% else %}
+    <p class="text-muted">Install scikit-learn, statsmodels, and krippendorff to see agreement metrics.</p>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

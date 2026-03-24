@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Annotate: {{ file|display_name|upper }}{% endblock %}
+{% block head %}
+<style>
+    .list-panel { border-left: 4px solid #38b2ac; }
+    .list-panel .table thead th { background: #f0fdfa; color: #0d9488; font-weight: 600; }
+    .status-done { display: inline-flex; align-items: center; gap: 0.35rem; color: #0d9488; font-weight: 500; }
+    .status-pending { display: inline-flex; align-items: center; gap: 0.35rem; color: #b45309; }
+    .status-flagged { display: inline-flex; align-items: center; gap: 0.35rem; color: #e53e3e; font-weight: 500; }
+    .status-icon { flex-shrink: 0; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h5 mb-0" style="color: #2d3748;">{{ file|display_name|upper }}</h1>
+    <div class="d-flex align-items-center gap-2">
+        <div class="progress" style="width: 180px; height: 8px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ progress_pct }}%;"></div>
+        </div>
+        <span class="small text-muted">{{ done }}/{{ total }} ({{ progress_pct }}%)</span>
+    </div>
+</div>
+
+<div class="card list-panel">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-3" style="width: 60px;">#</th>
+                        <th style="width: 140px;">Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in samples %}
+                    <tr>
+                        <td class="ps-3 fw-medium">{{ start_index + loop.index }}</td>
+                        <td>
+                            {% if (s.narrative_number|int) in flagged_nums %}
+                            <span class="status-flagged">
+                                <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+                                Needs revision
+                            </span>
+                            {% elif (s.narrative_number|int) in completed_nums %}
+                            <span class="status-done">
+                                <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                Done
+                            </span>
+                            {% else %}
+                            <span class="status-pending">
+                                <svg class="status-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('annotate_sample', file_id=file.id, narrative_number=s.narrative_number) }}" class="btn btn-sm {% if (s.narrative_number|int) in flagged_nums %}btn-warning{% elif (s.narrative_number|int) in completed_nums %}btn-outline-secondary{% else %}btn-primary{% endif %}">{% if (s.narrative_number|int) in flagged_nums %}Revise{% elif (s.narrative_number|int) in completed_nums %}Edit{% else %}Annotate{% endif %}</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if total_pages > 1 %}
+<div class="d-flex align-items-center gap-2 mt-3">
+    <span class="small text-muted">Page {{ page }} of {{ total_pages }}</span>
+    {% if page > 1 %}
+    <a href="{{ url_for('annotate_file', file_id=file.id, page=page-1) }}" class="btn btn-outline-secondary btn-sm">← Previous</a>
+    {% endif %}
+    {% if page < total_pages %}
+    <a href="{{ url_for('annotate_file', file_id=file.id, page=page+1) }}" class="btn btn-primary btn-sm">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Edit: {{ user.username|capitalize }} - Sample {{ sample.narrative_number }}{% endblock %}
+{% block head %}
+<style>
+    .edit-narratives-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .edit-narrative-card { border-left: 4px solid #4a90d9; }
+    .edit-narrative-card .accordion-body { max-height: 280px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; }
+    .edit-braided-card { border-left: 4px solid #38b2ac; background: #f0fdfa; }
+    .edit-braided-card .accordion-body { max-height: 220px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; }
+    @media (max-width: 768px) { .edit-narratives-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="h4 mb-3" style="color: #2d3748;">Edit: {{ user.username|capitalize }} — Sample {{ sample.narrative_number }}</h1>
+<p class="mb-4"><a href="{{ url_for('admin_file_view', file_id=file.id) }}" class="btn btn-outline-secondary btn-sm">← Back to file</a></p>
+
+<div class="card mb-3" style="border-left: 4px solid #9f7aea;">
+    <div class="card-body">
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <strong class="text-muted small">gt_trust</strong>
+                <p class="mb-0"><code>{{ sample.gt_trust }}</code></p>
+            </div>
+            <div class="col-md-6">
+                <strong class="text-muted small">gpt_trust</strong>
+                <p class="mb-0"><code>{{ sample|format_gpt }}</code></p>
+            </div>
+        </div>
+        <p class="mb-2 text-muted small">Click to expand and view full content:</p>
+        <div class="edit-narratives-row">
+            <div class="card edit-narrative-card">
+                <div class="accordion accordion-flush">
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#narr1">Narrative 1</button>
+                        </h2>
+                        <div id="narr1" class="accordion-collapse collapse">
+                            <div class="accordion-body">{{ sample.Review1 or '' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card edit-narrative-card">
+                <div class="accordion accordion-flush">
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#narr2">Narrative 2</button>
+                        </h2>
+                        <div id="narr2" class="accordion-collapse collapse">
+                            <div class="accordion-body">{{ sample.Review2 or '' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card edit-braided-card">
+            <div class="accordion accordion-flush">
+                <div class="accordion-item border-0 bg-transparent">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#braided">Braided Narrative</button>
+                    </h2>
+                    <div id="braided" class="accordion-collapse collapse">
+                        <div class="accordion-body">{{ sample.braided_narrative or '' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="border-left: 4px solid #4a90d9;">
+    <div class="card-body">
+        <h5 class="card-title mb-4" style="color: #2d3748;">Edit evaluation</h5>
+        <form method="post">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label">Trust in Narrative 1 (0–100)</label>
+                    <input type="number" name="trust_n1" class="form-control" min="0" max="100" value="{{ existing.trust[0] if existing and existing.trust else 0 }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Trust in Narrative 2 (0–100)</label>
+                    <input type="number" name="trust_n2" class="form-control" min="0" max="100" value="{{ existing.trust[1] if existing and existing.trust else 0 }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fluency (1–5)</label>
+                    <input type="number" name="fluency" class="form-control" min="1" max="5" value="{{ existing.fluency if existing and existing.fluency else 1 }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Coherency (1–5)</label>
+                    <input type="number" name="coherency" class="form-control" min="1" max="5" value="{{ existing.coherency if existing and existing.coherency else 1 }}" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Hallucination (1–5)</label>
+                    <input type="number" name="hallucination" class="form-control" min="1" max="5" value="{{ existing.hallucination if existing and existing.hallucination else 1 }}" required>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block head %}
+<style>
+    .admin-table-card { border-left: 4px solid #2d3748; }
+    .admin-table-card .table thead th { background: #edf2f7 !important; color: #2d3748; font-weight: 600; }
+    .admin-table-card .table tbody td { vertical-align: middle; }
+    .admin-table-card .progress-cell { min-width: 280px; }
+    .admin-table-card .progress-cell .annotator-list { display: flex; flex-direction: column; gap: 0.35rem; justify-content: center; }
+    .action-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; border: none; background: none; border-radius: 4px; cursor: pointer; transition: opacity 0.2s; }
+    .action-icon:hover { opacity: 0.8; }
+    .action-icon-archive { color: #d69e2e; }
+    .action-icon-delete { color: #e53e3e; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="h4 mb-4" style="color: #2d3748;">Admin Dashboard</h1>
+<p class="mb-4">
+    <a href="{{ url_for('admin_upload') }}" class="btn btn-primary shadow-sm">Upload Excel</a>
+    {% if archived_count %}<a href="{{ url_for('admin_archived') }}" class="btn btn-outline-secondary ms-2">View archived ({{ archived_count }})</a>{% endif %}
+    <a href="/admin/correlation" class="btn btn-outline-secondary ms-2">Correlation</a>
+</p>
+{% if file_progress %}
+<div class="card admin-table-card">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>File</th>
+                    <th>Progress</th>
+                    <th>Uploaded</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fp in file_progress %}
+                <tr>
+                    <td><strong>{{ fp.file|display_name|upper }}</strong></td>
+                    <td class="progress-cell">
+                        <div class="annotator-list">
+                        {% for ap in fp.annotators %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-nowrap" style="min-width: 80px;">{{ ap.username|capitalize }}</span>
+                            <div class="progress flex-grow-1" style="width: 120px; height: 6px;">
+                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ (ap.done / ap.total * 100) if ap.total else 0 }}%;"></div>
+                            </div>
+                            <span class="small text-muted">{{ ap.done }}/{{ ap.total }} ({{ ((ap.done / ap.total * 100)|round(1)) if ap.total else 0 }}%)</span>
+                        </div>
+                        {% endfor %}
+                        {% if not fp.annotators %}
+                        <span class="text-muted">— No annotators assigned</span>
+                        {% endif %}
+                        </div>
+                    </td>
+                    <td class="text-muted">{{ fp.file.uploaded_at.strftime('%Y-%m-%d %H:%M') if fp.file.uploaded_at else '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_file_view', file_id=fp.file.id) }}" class="btn btn-primary btn-sm">View</a>
+                        <a href="{{ url_for('admin_assign', file_id=fp.file.id) }}" class="btn btn-outline-secondary btn-sm">Assign</a>
+                        <a href="{{ url_for('admin_download', file_id=fp.file.id) }}" class="btn btn-outline-secondary btn-sm">Download</a>
+                        <form method="post" action="{{ url_for('admin_archive_file', file_id=fp.file.id) }}" class="d-inline">
+                            <button type="submit" class="action-icon action-icon-archive" title="Archive"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path></svg></button>
+                        </form>
+                        <form method="post" action="{{ url_for('admin_delete_file', file_id=fp.file.id) }}" class="d-inline" onsubmit="return confirm('Permanently delete this file and all annotations?');">
+                            <button type="submit" class="action-icon action-icon-delete" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<p class="text-muted">No files uploaded yet. Use the button above to upload an Excel file.</p>
+{% endif %}
+{% endblock %}

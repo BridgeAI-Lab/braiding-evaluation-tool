@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+
+# Uploads
+uploads/
+
+# Data
+*.xlsx
+
+# Notebook (optional - remove if you want to track it)
+transform_to_braided_format.ipynb
+
+# OS
+.DS_Store

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Correlation{% endblock %}
+{% block head %}
+<style>
+    .corr-card { border-left: 4px solid #4a90d9; }
+    .corr-card .table thead th { background: #edf2f7 !important; color: #2d3748; font-weight: 600; }
+    .corr-val { font-family: monospace; font-weight: 500; }
+    .corr-val.positive { color: #0d9488; }
+    .corr-val.negative { color: #e53e3e; }
+</style>
+{% endblock %}
+{% block content %}
+<h1 class="h4 mb-4" style="color: #2d3748;">Correlation with GPT Trust</h1>
+<p class="text-muted mb-4">Measure correlation between GPT (from Excel: gpt_trust, Fluency, Coherency, Hallucination) and annotator evaluations. If Excel lacks F/C/H columns, placeholder 3 is used.</p>
+
+<form method="get" class="mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label">File</label>
+            <select name="file_id" class="form-select" onchange="this.form.submit()">
+                <option value="">— Select file —</option>
+                {% for f in files %}
+                <option value="{{ f.id }}" {% if selected_file and selected_file.id == f.id %}selected{% endif %}>{{ f.filename|display_name|upper }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Correlation method</label>
+            <select name="method" class="form-select" onchange="this.form.submit()">
+                <option value="spearman" {% if method == 'spearman' %}selected{% endif %}>Spearman</option>
+                <option value="kendall" {% if method == 'kendall' %}selected{% endif %}>Kendall τ</option>
+                <option value="pearson" {% if method == 'pearson' %}selected{% endif %}>Pearson</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Compute</button>
+        </div>
+    </div>
+</form>
+
+{% if results %}
+<div class="card corr-card">
+    <div class="card-body">
+        <h6 class="card-title mb-3">{{ selected_file.filename|display_name|upper }} — {{ method|capitalize }} correlation</h6>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Annotator</th>
+                        <th>N annotated</th>
+                        <th>Trust A (r / p)</th>
+                        <th>Trust B (r / p)</th>
+                        <th>Fluency (r / p)</th>
+                        <th>Coherency (r / p)</th>
+                        <th>Hallucination (r / p)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    <tr>
+                        <td><strong>{{ r.username|capitalize }}</strong></td>
+                        <td>{{ r.n_annotated }}</td>
+                        <td>{% if r.trust_a[0] is not none %}<span class="corr-val {% if r.trust_a[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.trust_a[0]) }}</span> / {{ "%.3f"|format(r.trust_a[1]) }}{% else %}—{% endif %}</td>
+                        <td>{% if r.trust_b[0] is not none %}<span class="corr-val {% if r.trust_b[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.trust_b[0]) }}</span> / {{ "%.3f"|format(r.trust_b[1]) }}{% else %}—{% endif %}</td>
+                        <td>{% if r.fluency[0] is not none %}<span class="corr-val {% if r.fluency[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.fluency[0]) }}</span> / {{ "%.3f"|format(r.fluency[1]) }}{% else %}—{% endif %}</td>
+                        <td>{% if r.coherency[0] is not none %}<span class="corr-val {% if r.coherency[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.coherency[0]) }}</span> / {{ "%.3f"|format(r.coherency[1]) }}{% else %}—{% endif %}</td>
+                        <td>{% if r.hallucination[0] is not none %}<span class="corr-val {% if r.hallucination[0] >= 0 %}positive{% else %}negative{% endif %}">{{ "%.3f"|format(r.hallucination[0]) }}</span> / {{ "%.3f"|format(r.hallucination[1]) }}{% else %}—{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-2 mb-0">r = correlation coefficient, p = p-value. Trust A = first value in [A, B], Trust B = second value.</p>
+    </div>
+</div>
+{% elif selected_file %}
+<p class="text-muted">No annotations yet for this file. Annotators need to complete samples first.</p>
+{% endif %}
+{% endblock %}

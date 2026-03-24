@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Annotate: {{ file|display_name|upper }} — Sample {{ current_idx }}{% endblock %}
+{% block head %}
+<style>
+    .narratives-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .narrative-card { border-left: 4px solid #4a90d9 !important; }
+    .narrative-card .card-header { background: #f8fafc !important; color: #2d3748; display: flex; justify-content: space-between; align-items: center; }
+    .narrative-card .card-body { max-height: 280px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; }
+    .braided-card { border-left: 4px solid #38b2ac !important; background: #f0fdfa !important; }
+    .braided-card .card-header { background: #ccfbf1 !important; color: #0d9488; display: flex; justify-content: space-between; align-items: center; }
+    .braided-card .card-body { max-height: 220px; overflow-y: auto; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; }
+    .copy-btn { background: none; border: none; padding: 0.15rem; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; line-height: 1; }
+    .copy-btn:hover { opacity: 1; }
+    .eval-card-custom { border-left: 4px solid #9f7aea !important; }
+    .eval-card-custom .card-title { color: #553c9a; }
+    .eval-card-custom .form-label { line-height: 1.4; }
+    @media (max-width: 768px) { .narratives-row { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+{% if is_flagged %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3" role="alert">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+    <span><strong>Needs revision.</strong> The admin has flagged this annotation for review. Please update and save.</span>
+</div>
+{% endif %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <span class="fw-medium">Sample {{ current_idx }} of {{ total }}</span>
+    {% if prev_num %}
+    <a href="{{ url_for('annotate_sample', file_id=file.id, narrative_number=prev_num) }}" class="btn btn-outline-secondary btn-sm">← Previous</a>
+    {% endif %}
+    <a href="{{ url_for('annotate_file', file_id=file.id) }}" class="btn btn-outline-secondary btn-sm">Back to list</a>
+    {% if next_num %}
+    <a href="{{ url_for('annotate_sample', file_id=file.id, narrative_number=next_num) }}" class="btn btn-primary btn-sm">Next →</a>
+    {% endif %}
+</div>
+
+<div class="narratives-row">
+    <div class="card narrative-card">
+        <div class="card-header py-2">
+            <strong>Narrative 1</strong>
+            <button type="button" class="copy-btn" onclick="copyToClipboard('narr1', this)" title="Copy to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+        </div>
+        <div class="card-body" id="narr1">{{ sample.Review1 or '' }}</div>
+    </div>
+    <div class="card narrative-card">
+        <div class="card-header py-2">
+            <strong>Narrative 2</strong>
+            <button type="button" class="copy-btn" onclick="copyToClipboard('narr2', this)" title="Copy to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+        </div>
+        <div class="card-body" id="narr2">{{ sample.Review2 or '' }}</div>
+    </div>
+</div>
+
+<div class="card braided-card mb-3">
+    <div class="card-header py-2">
+        <strong>Braided Narrative</strong>
+        <button type="button" class="copy-btn" onclick="copyToClipboard('braided', this)" title="Copy to clipboard">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+    </div>
+    <div class="card-body" id="braided">{{ sample.braided_narrative or '' }}</div>
+</div>
+
+<script>
+function copyToClipboard(id, btn) {
+    const el = document.getElementById(id);
+    const text = el ? el.textContent : '';
+    navigator.clipboard.writeText(text).then(() => {
+        const copyBtn = btn ? btn.closest('.copy-btn') : null;
+        if (copyBtn) {
+            const orig = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            copyBtn.title = 'Copied!';
+            setTimeout(() => { copyBtn.innerHTML = orig; copyBtn.title = 'Copy to clipboard'; }, 1500);
+        }
+    });
+}
+</script>
+
+<div class="card eval-card-custom">
+    <div class="card-body">
+        <h5 class="card-title mb-4">Your Evaluation</h5>
+        <form method="post" id="annot-form">
+            <div class="row g-4 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-nowrap">Trust in Narrative 1 (0–100)</label>
+                    <input type="number" name="trust_n1" class="form-control" min="0" max="100" value="{{ existing.trust[0] if existing and existing.trust else '' }}" required placeholder="0–100">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-nowrap">Trust in Narrative 2 (0–100)</label>
+                    <input type="number" name="trust_n2" class="form-control" min="0" max="100" value="{{ existing.trust[1] if existing and existing.trust else '' }}" required placeholder="0–100">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Fluency (1–5)</label>
+                    <input type="number" name="fluency" class="form-control" min="1" max="5" value="{{ existing.fluency if existing and existing.fluency else '' }}" required placeholder="1–5">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Coherency (1–5)</label>
+                    <input type="number" name="coherency" class="form-control" min="1" max="5" value="{{ existing.coherency if existing and existing.coherency else '' }}" required placeholder="1–5">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Hallucination (1–5)</label>
+                    <input type="number" name="hallucination" class="form-control" min="1" max="5" value="{{ existing.hallucination if existing and existing.hallucination else '' }}" required placeholder="1–5" title="1=Severe, 5=Fully faithful">
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save</button>
+                {% if next_num %}
+                <button type="submit" name="next" value="{{ next_num }}" class="btn btn-success ms-2">Save & Next</button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}
